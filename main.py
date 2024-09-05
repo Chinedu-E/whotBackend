@@ -77,29 +77,33 @@ async def create(settings: str = Body(...)):
 @app.websocket('/ws/games/')
 async def get_games(websocket: WebSocket):
     await websocket.accept()
-    while True:
-        games = []
-        for id in session_manager.ids:
-            session = session_manager[id]
-            if session.isPrivate:
-                continue
-            game = {
-                'id': id,
-                'private': session.isPrivate,
-                'host': session.hostName,
-                'status': session.status,
-                'max_players': session.numPlayers,
-                'num_players': len(session.clients),
-            }
-            games.append(game)
-        try:
+    try:
+        while True:
+            games = []
+            for id in session_manager.ids:
+                session = session_manager[id]
+                if session.isPrivate or session.status == "finished" or len(session.clients) == 0:
+                    continue
+                game = {
+                    'id': id,
+                    'private': session.isPrivate,
+                    'host': session.hostName,
+                    'status': session.status,
+                    'max_players': session.numPlayers,
+                    'num_players': len(session.clients),
+                }
+                games.append(game)
+            
             await websocket.send_json({
                 'games': games
             })
-        except WebSocketDisconnect:
-            print('disconnected')
-            break
-        await asyncio.sleep(0.1)
+            
+            await asyncio.sleep(1)  # Increased sleep time to reduce load
+    except WebSocketDisconnect:
+        print('Client disconnected')
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        
     
         
 
