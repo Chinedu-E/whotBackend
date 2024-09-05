@@ -151,6 +151,9 @@ async def websocket_endpoint(websocket: WebSocket, host_id: str, id: int, settin
         
     if disconnected:
         await session_manager.remove_client(session.id, host_id)
+        session = session_manager.ids[session.id]
+        if len(session.clients) == 0:
+            session_manager.delete_session(session.id)
     else:
         session_manager.delete_session(session.id)
         
