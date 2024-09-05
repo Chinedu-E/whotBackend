@@ -90,7 +90,6 @@ class Bot:
         
     def process(self, move: dict, id: str) :
         if 'winner' in move and move['winner'] != '':
-            self.stop()
             return
         
         if 'turn' in move and move['turn'] == id:

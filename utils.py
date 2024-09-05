@@ -68,6 +68,7 @@ class Session:
             data['player_cards'] = new_cards
             await self.broadcast_message(data)
             return
+        
           
     async def broadcast_message(self, message):
         for client in self.clients:
@@ -79,6 +80,8 @@ class Session:
                 print(e)
                     
     async def process_game_move(self, move):
+        if not move or len(move) == 0:
+            return
         data = json.loads(move)
         last_stack = data['stack']
         data = self.game.process_game_move(data)
@@ -109,8 +112,11 @@ class Session:
             await self.broadcast_message({'status': 'game_over', **data})
             clients = self.clients
             for client in clients:
-                await client[0].close()
-                self.clients.remove(client)
+                try:
+                    await client[0].close()
+                    self.clients.remove(client)
+                except RuntimeError:
+                    continue
             print("Game Over", data['winner'], "wins")
             
         await self.broadcast_message(data)
@@ -266,10 +272,9 @@ class SessionsManager:
         return False
     
     def delete_session(self, id: int):
-        session = self.ids.get(id, None)
-        if session:
-            del session
-            print("Deleted session:", id)
+        
+        del self.ids[id]
+        print("Deleted session:", id)
         
     def get_session_status(self, id: int) -> str:
         session = self.ids.get(id, None)
