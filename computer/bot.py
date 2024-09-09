@@ -6,6 +6,8 @@ import threading
 import websockets
 from dotenv import load_dotenv
 
+from game import get_stack_value, is_valid
+
 load_dotenv()
 
 backend = os.getenv('BACKEND')
@@ -82,6 +84,7 @@ class Bot:
                         move = json.loads(message)
                         data = self.process(move, id)
                         if data:
+                            await asyncio.sleep(0.25)
                             await websocket.send(json.dumps(data))
                     except websockets.exceptions.ConnectionClosedError:
                         break
@@ -127,62 +130,3 @@ def get_self(move, id: str) :
     return player[0] if len(player) > 0 else None
     
     
-def is_valid(face_card: dict, to_play: dict, has_played: bool) -> bool:
-    # Special case: Whot card (represented by shape 20) can be played on any card
-    if to_play['shape'] == 20:
-        return True
-
-    if has_played:
-        if to_play['num'] == face_card['num']:
-            return True
-        return False
-
-    # Match by shape
-    if to_play['shape'] == face_card['shape']:
-        return True
-
-    # Match by number
-    if to_play['num'] == face_card['num']:
-        return True
-
-    # Special cards logic
-    if face_card['num'] == 1:  # Pick One
-        return to_play['num'] == 1
-    elif face_card['num'] == 2:  # Pick Two
-        return to_play['num'] == 2
-    elif face_card['num'] == 5:  # Pick Three
-        return to_play['num'] == 5
-    elif face_card['num'] == 8:  # Suspension
-        return to_play['num'] == 8
-    elif face_card['num'] == 14:  # General Market
-        return to_play['num'] == 14
-
-    # If none of the above conditions are met, the card is not valid
-    return False
-
-
-def get_stack_value(stack: list, market: int) -> dict:
-    value = 0
-    turns_to_skip = 1
-    failed_defense = False
-    card = stack[0] if len(stack) > 0 else None
-    
-    if card:
-        if card['num'] == 2:
-            value = 2 * len(stack)
-        elif card['num'] == 5:
-            value = 3 * len(stack)
-        elif card['num'] == 14:
-            value = 0 if len(stack) == 1 else (1 * len(stack))
-        elif card['num'] == 8:
-            turns_to_skip = 1 * len(stack)
-
-    if len(stack) == 0 and market > 0:
-        failed_defense = True
-    
-
-    return {
-        'market': market + value,
-        'turns_to_skip': 2 if turns_to_skip == 1 else turns_to_skip + 1,
-        'failed_defense': failed_defense
-    }
